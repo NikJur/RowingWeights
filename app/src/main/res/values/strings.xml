@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">RowingWeights</string>
+    <string name="tab_log">Log Weight</string>
+    <string name="tab_history">History</string>
+    <string name="hint_weight">Enter weight (e.g., 75.55)</string>
+    <string name="btn_log_weight">Log Weight</string>
 </resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -22,7 +23,7 @@
         android:textColor="#333333"
         android:gravity="center"
         android:background="#F5F5F5"
-        android:drawableStart="@android:drawable/ic_menu_today"
+        app:drawableStartCompat="@android:drawable/ic_menu_today"
         android:drawablePadding="16dp"
         android:layout_marginBottom="24dp" />
 
@@ -31,17 +32,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:hint="Enter weight (e.g., 75.5)"
+        android:hint="@string/hint_weight"
         android:inputType="numberDecimal"
         android:gravity="center"
         android:background="#FAFAFA"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="24dp"
+        android:importantForAutofill="no" />
 
     <Button
         android:id="@+id/submitButton"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:text="Log Weight"
+        android:text="@string/btn_log_weight"
         android:textSize="18sp"
         android:textStyle="bold" />
 
