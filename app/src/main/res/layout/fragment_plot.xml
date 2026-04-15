@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Weight History"
+        android:text="@string/title_weight_history"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#333333"
@@ -28,7 +28,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="1W"
+            android:text="@string/btn_1w"
             style="?android:attr/buttonBarButtonStyle" />
 
         <Button
@@ -36,7 +36,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="1M"
+            android:text="@string/btn_1m"
             style="?android:attr/buttonBarButtonStyle" />
 
         <Button
@@ -44,7 +44,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="1Y"
+            android:text="@string/btn_1y"
             style="?android:attr/buttonBarButtonStyle" />
 
         <Button
@@ -52,7 +52,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="ALL"
+            android:text="@string/btn_all"
             style="?android:attr/buttonBarButtonStyle" />
     </LinearLayout>
 

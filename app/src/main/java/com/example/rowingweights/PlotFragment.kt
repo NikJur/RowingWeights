@@ -14,6 +14,7 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.graphics.toColorInt
 
 /**
  * PlotFragment visualises historical data using proportional time scaling.
@@ -64,7 +65,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
         val leftAxis = weightChart.axisLeft
         leftAxis.textColor = Color.DKGRAY
         leftAxis.setDrawGridLines(true)
-        leftAxis.gridColor = Color.parseColor("#E0E0E0")
+        leftAxis.gridColor = "#E0E0E0".toColorInt()
         leftAxis.gridLineWidth = 1f
 
         weightChart.axisRight.isEnabled = false
@@ -92,7 +93,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
                     val daysSinceEpoch = (parsedDate.time / (1000f * 60f * 60f * 24f))
                     weightEntries.add(Entry(daysSinceEpoch, weight))
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Skips corrupted dates
             }
         }
@@ -102,7 +103,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
 
         val dataSet = LineDataSet(weightEntries, "Daily Weight")
 
-        val modernBlue = Color.parseColor("#007AFF")
+        val modernBlue = "#007AFF".toColorInt()
         dataSet.color = modernBlue
         dataSet.lineWidth = 2.5f
         dataSet.mode = LineDataSet.Mode.LINEAR
@@ -143,7 +144,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
     /**
      * A custom translator that converts raw mathematical "Days" back into "dd MMM yy"
      */
-    inner class DateAxisFormatter : ValueFormatter() {
+    class DateAxisFormatter : ValueFormatter() {
         private val outputFormat = SimpleDateFormat("dd MMM yy", Locale.getDefault())
 
         override fun getFormattedValue(value: Float): String {
