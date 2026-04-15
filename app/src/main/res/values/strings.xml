@@ -9,4 +9,5 @@
     <string name="btn_1m">1M</string>
     <string name="btn_1y">1Y</string>
     <string name="btn_all">ALL</string>
+    <string name="btn_delete">Delete</string>
 </resources>
