@@ -42,6 +42,16 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "WeightTracke
     }
 
     /**
+     * Deletes a specific weight record based on its date.
+     */
+    fun deleteWeight(date: String) {
+        val db = this.writableDatabase
+        // The "?" acts as a secure placeholder to prevent SQL injection errors
+        db.delete("weights", "date = ?", arrayOf(date))
+        db.close()
+    }
+
+    /**
      * Retrieves all stored weight records and sorts them chronologically.
      */
     fun getAllWeights(): List<Pair<String, Float>> {

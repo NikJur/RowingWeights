@@ -4,6 +4,11 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
@@ -11,10 +16,13 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.highlight.Highlight
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.graphics.toColorInt
+import java.util.TimeZone
+import android.app.AlertDialog
 
 /**
  * PlotFragment visualises historical data using proportional time scaling.
@@ -24,20 +32,33 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
     private lateinit var weightChart: LineChart
     private lateinit var dbHelper: DatabaseHelper
 
+    // UI Elements for the Edit Panel
+    private lateinit var editPanel: LinearLayout
+    private lateinit var editDateDisplay: TextView
+    private lateinit var editWeightInput: EditText
+
+    // Stores the exact database date format of the selected point so we can overwrite it
+    private var activeEditDateDbFormat: String = ""
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         weightChart = view.findViewById(R.id.weightChart)
         dbHelper = DatabaseHelper(requireContext())
 
+        editPanel = view.findViewById(R.id.editPanel)
+        editDateDisplay = view.findViewById(R.id.editDateDisplay)
+        editWeightInput = view.findViewById(R.id.editWeightInput)
+
         setupChartAppearance()
+        setupEditPanelListeners(view)
 
         // Wires up the zoom buttons
         view.findViewById<Button>(R.id.btnWeek).setOnClickListener { setTimeView(7f) }
         view.findViewById<Button>(R.id.btnMonth).setOnClickListener { setTimeView(30f) }
         view.findViewById<Button>(R.id.btnYear).setOnClickListener { setTimeView(365f) }
         view.findViewById<Button>(R.id.btnAll).setOnClickListener {
-            weightChart.fitScreen() // Zooms all the way out
+            weightChart.fitScreen()
             weightChart.invalidate()
         }
     }
@@ -51,7 +72,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
         weightChart.description.isEnabled = false
         weightChart.legend.isEnabled = false
         weightChart.setDrawGridBackground(false)
-        weightChart.isScaleYEnabled = false // Locks vertical zoom, only allows horizontal panning
+        weightChart.isScaleYEnabled = false
 
         val xAxis = weightChart.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
@@ -69,6 +90,91 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
         leftAxis.gridLineWidth = 1f
 
         weightChart.axisRight.isEnabled = false
+
+        // Wires up the chart to listen for taps on the data points
+        weightChart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry, h: Highlight?) {
+                openEditPanel(e)
+            }
+
+            override fun onNothingSelected() {
+                closeEditPanel()
+            }
+        })
+    }
+
+    /**
+     * Binds click listeners to the Edit Panel buttons.
+     * Includes an AlertDialog safeguard to prevent accidental database deletions.
+     */
+    private fun setupEditPanelListeners(view: View) {
+        // Hides the panel and clears the chart crosshairs
+        view.findViewById<Button>(R.id.btnCancelEdit).setOnClickListener {
+            closeEditPanel()
+            weightChart.highlightValues(null)
+        }
+
+        // Saves the updated text field data to the SQLite database
+        view.findViewById<Button>(R.id.btnSaveEdit).setOnClickListener {
+            val newWeight = editWeightInput.text.toString().toFloatOrNull()
+            if (newWeight != null && activeEditDateDbFormat.isNotEmpty()) {
+                dbHelper.insertWeight(activeEditDateDbFormat, newWeight)
+
+                Toast.makeText(requireContext(), "Entry updated", Toast.LENGTH_SHORT).show()
+                closeEditPanel()
+                refreshChartFromDatabase()
+            }
+        }
+
+        // Triggers a confirmation pop-up before executing the database deletion
+        view.findViewById<Button>(R.id.btnDeleteEdit).setOnClickListener {
+            if (activeEditDateDbFormat.isNotEmpty()) {
+
+                // Constructs and displays the native Android confirmation dialog
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Confirm Deletion")
+                    .setMessage("Are you sure you want to permanently delete this weight record?")
+                    .setPositiveButton("Delete") { _, _ ->
+                        // This block only executes if the user explicitly clicks "Delete"
+                        dbHelper.deleteWeight(activeEditDateDbFormat)
+                        Toast.makeText(requireContext(), "Entry deleted", Toast.LENGTH_SHORT).show()
+                        closeEditPanel()
+                        refreshChartFromDatabase()
+                    }
+                    .setNegativeButton("Cancel", null) // Closes the dialog without taking action
+                    .show()
+            }
+        }
+    }
+
+    /**
+     * Extracts the date from the clicked point and reveals the hidden editing tools.
+     */
+    private fun openEditPanel(entry: Entry) {
+        // Convert the X-axis "Days" back into milliseconds
+        val millis = entry.x.toLong() * 1000L * 60L * 60L * 24L
+        val dateObject = Date(millis)
+
+        // Formats for displaying to the user (e.g., Monday, 15 Apr 2026)
+        val displayFormat = SimpleDateFormat("EEEE, dd MMM yyyy", Locale.getDefault())
+        displayFormat.timeZone = TimeZone.getTimeZone("UTC")
+        // Formats for saving to the database securely
+        val dbFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        dbFormat.timeZone = TimeZone.getTimeZone("UTC")
+
+        activeEditDateDbFormat = dbFormat.format(dateObject)
+
+        // Populates the panel with the existing data
+        editDateDisplay.text = displayFormat.format(dateObject)
+        editWeightInput.setText(entry.y.toString())
+
+        // Reveals the panel
+        editPanel.visibility = View.VISIBLE
+    }
+
+    private fun closeEditPanel() {
+        editPanel.visibility = View.GONE
+        activeEditDateDbFormat = ""
     }
 
     private fun refreshChartFromDatabase() {
@@ -81,6 +187,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
 
         val weightEntries = mutableListOf<Entry>()
         val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
 
         historicalData.forEach { record ->
             val rawDate = record.first
@@ -106,7 +213,7 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
         val modernBlue = "#007AFF".toColorInt()
         dataSet.color = modernBlue
         dataSet.lineWidth = 2.5f
-        dataSet.mode = LineDataSet.Mode.LINEAR
+        dataSet.mode = LineDataSet.Mode.LINEAR // Reverted to straight lines!
 
         dataSet.setCircleColor(modernBlue)
         dataSet.circleRadius = 5f
@@ -145,7 +252,9 @@ class PlotFragment : Fragment(R.layout.fragment_plot) {
      * A custom translator that converts raw mathematical "Days" back into "dd MMM yy"
      */
     class DateAxisFormatter : ValueFormatter() {
-        private val outputFormat = SimpleDateFormat("dd MMM yy", Locale.getDefault())
+        private val outputFormat = SimpleDateFormat("dd MMM yy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
 
         override fun getFormattedValue(value: Float): String {
             // Converts "Days" back into standard Milliseconds for the SimpleDateFormat
